@@ -1,3 +1,5 @@
+#[cfg(feature = "perfect_precision")]
+use crate::perfect_precision_number::PerfectPrecisionNumber;
 use crate::{
     compilation::JSONSchema,
     error::{error, no_error, ErrorIterator, ValidationError},
@@ -44,6 +46,15 @@ pub trait Validate: Send + Sync {
         true
     }
     #[inline]
+    fn is_valid_string(
+        &self,
+        _schema: &JSONSchema,
+        _instance: &Value,
+        _instance_value: &str,
+    ) -> bool {
+        true
+    }
+    #[inline]
     fn is_valid_number(
         &self,
         _schema: &JSONSchema,
@@ -62,20 +73,21 @@ pub trait Validate: Send + Sync {
         true
     }
     #[inline]
-    fn is_valid_string(
-        &self,
-        _schema: &JSONSchema,
-        _instance: &Value,
-        _instance_value: &str,
-    ) -> bool {
-        true
-    }
-    #[inline]
     fn is_valid_unsigned_integer(
         &self,
         _schema: &JSONSchema,
         _instance: &Value,
         _instance_value: u64,
+    ) -> bool {
+        true
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _schema: &JSONSchema,
+        _instance: &Value,
+        _instance_value: &PerfectPrecisionNumber,
     ) -> bool {
         true
     }
@@ -88,18 +100,29 @@ pub trait Validate: Send + Sync {
             }
             Value::Null => self.is_valid_null(schema, instance, ()),
             Value::Number(instance_number) => {
-                if let Some(instance_unsigned_integer) = instance_number.as_u64() {
-                    self.is_valid_unsigned_integer(schema, instance, instance_unsigned_integer)
-                } else if let Some(instance_signed_integer) = instance_number.as_i64() {
-                    self.is_valid_signed_integer(schema, instance, instance_signed_integer)
-                } else {
-                    self.is_valid_number(
+                #[cfg(feature = "perfect_precision")]
+                {
+                    self.is_valid_perfect_precision_number(
                         schema,
                         instance,
-                        instance_number
-                            .as_f64()
-                            .expect("A JSON number will always be representable as f64"),
+                        &instance_number.into(),
                     )
+                }
+                #[cfg(not(feature = "perfect_precision"))]
+                {
+                    if let Some(instance_unsigned_integer) = instance_number.as_u64() {
+                        self.is_valid_unsigned_integer(schema, instance, instance_unsigned_integer)
+                    } else if let Some(instance_signed_integer) = instance_number.as_i64() {
+                        self.is_valid_signed_integer(schema, instance, instance_signed_integer)
+                    } else {
+                        self.is_valid_number(
+                            schema,
+                            instance,
+                            instance_number
+                                .as_f64()
+                                .expect("A JSON number will always be representable as f64"),
+                        )
+                    }
                 }
             }
             Value::Object(instance_object) => {
@@ -164,6 +187,19 @@ pub trait Validate: Send + Sync {
         }
     }
     #[inline]
+    fn validate_string<'a>(
+        &self,
+        schema: &'a JSONSchema,
+        instance: &'a Value,
+        instance_value: &'a str,
+    ) -> ErrorIterator<'a> {
+        if self.is_valid_string(schema, instance, instance_value) {
+            no_error()
+        } else {
+            error(self.build_validation_error(instance))
+        }
+    }
+    #[inline]
     fn validate_number<'a>(
         &self,
         schema: &'a JSONSchema,
@@ -190,19 +226,6 @@ pub trait Validate: Send + Sync {
         }
     }
     #[inline]
-    fn validate_string<'a>(
-        &self,
-        schema: &'a JSONSchema,
-        instance: &'a Value,
-        instance_value: &'a str,
-    ) -> ErrorIterator<'a> {
-        if self.is_valid_string(schema, instance, instance_value) {
-            no_error()
-        } else {
-            error(self.build_validation_error(instance))
-        }
-    }
-    #[inline]
     fn validate_unsigned_integer<'a>(
         &self,
         schema: &'a JSONSchema,
@@ -210,6 +233,20 @@ pub trait Validate: Send + Sync {
         instance_value: u64,
     ) -> ErrorIterator<'a> {
         if self.is_valid_unsigned_integer(schema, instance, instance_value) {
+            no_error()
+        } else {
+            error(self.build_validation_error(instance))
+        }
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn validate_perfect_precision_number<'a>(
+        &self,
+        schema: &'a JSONSchema,
+        instance: &'a Value,
+        instance_value: &PerfectPrecisionNumber,
+    ) -> ErrorIterator<'a> {
+        if self.is_valid_perfect_precision_number(schema, instance, instance_value) {
             no_error()
         } else {
             error(self.build_validation_error(instance))
@@ -224,18 +261,29 @@ pub trait Validate: Send + Sync {
             }
             Value::Null => self.validate_null(schema, instance, ()),
             Value::Number(instance_number) => {
-                if let Some(instance_unsigned_integer) = instance_number.as_u64() {
-                    self.validate_unsigned_integer(schema, instance, instance_unsigned_integer)
-                } else if let Some(instance_signed_integer) = instance_number.as_i64() {
-                    self.validate_signed_integer(schema, instance, instance_signed_integer)
-                } else {
-                    self.validate_number(
+                #[cfg(feature = "perfect_precision")]
+                {
+                    self.validate_perfect_precision_number(
                         schema,
                         instance,
-                        instance_number
-                            .as_f64()
-                            .expect("A JSON number will always be representable as f64"),
+                        &instance_number.into(),
                     )
+                }
+                #[cfg(not(feature = "perfect_precision"))]
+                {
+                    if let Some(instance_unsigned_integer) = instance_number.as_u64() {
+                        self.validate_unsigned_integer(schema, instance, instance_unsigned_integer)
+                    } else if let Some(instance_signed_integer) = instance_number.as_i64() {
+                        self.validate_signed_integer(schema, instance, instance_signed_integer)
+                    } else {
+                        self.validate_number(
+                            schema,
+                            instance,
+                            instance_number
+                                .as_f64()
+                                .expect("A JSON number will always be representable as f64"),
+                        )
+                    }
                 }
             }
             Value::Object(instance_object) => {

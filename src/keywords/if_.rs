@@ -98,6 +98,11 @@ impl Validate for IfThenValidator {
     if_then_impl_is_valid!(signed_integer, i64);
     if_then_impl_is_valid!(string, &str);
     if_then_impl_is_valid!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    if_then_impl_is_valid!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 
     if_then_impl_validate!(array, &'a [Value]);
     if_then_impl_validate!(boolean, bool);
@@ -107,6 +112,11 @@ impl Validate for IfThenValidator {
     if_then_impl_validate!(signed_integer, i64);
     if_then_impl_validate!(string, &'a str);
     if_then_impl_validate!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    if_then_impl_validate!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 }
 
 pub struct IfElseValidator {
@@ -201,6 +211,11 @@ impl Validate for IfElseValidator {
     if_else_impl_is_valid!(signed_integer, i64);
     if_else_impl_is_valid!(string, &str);
     if_else_impl_is_valid!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    if_else_impl_is_valid!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 
     if_else_impl_validate!(array, &'a [Value]);
     if_else_impl_validate!(boolean, bool);
@@ -210,6 +225,11 @@ impl Validate for IfElseValidator {
     if_else_impl_validate!(signed_integer, i64);
     if_else_impl_validate!(string, &'a str);
     if_else_impl_validate!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    if_else_impl_validate!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 }
 
 pub struct IfThenElseValidator {
@@ -317,6 +337,11 @@ impl Validate for IfThenElseValidator {
     if_then_else_impl_is_valid!(signed_integer, i64);
     if_then_else_impl_is_valid!(string, &str);
     if_then_else_impl_is_valid!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    if_then_else_impl_is_valid!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 
     if_then_else_impl_validate!(array, &'a [Value]);
     if_then_else_impl_validate!(boolean, bool);
@@ -326,6 +351,11 @@ impl Validate for IfThenElseValidator {
     if_then_else_impl_validate!(signed_integer, i64);
     if_then_else_impl_validate!(string, &'a str);
     if_then_else_impl_validate!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    if_then_else_impl_validate!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 }
 
 #[inline]

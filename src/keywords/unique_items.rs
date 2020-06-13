@@ -1,3 +1,5 @@
+#[cfg(feature = "perfect_precision")]
+use crate::perfect_precision_number::PerfectPrecisionNumber;
 use crate::{
     compilation::{CompilationContext, JSONSchema},
     error::{no_error, ErrorIterator, ValidationError},
@@ -12,9 +14,42 @@ use std::{
 
 // Based on implementation proposed by Sven Marnach:
 // https://stackoverflow.com/questions/60882381/what-is-the-fastest-correct-way-to-detect-that-there-are-no-duplicates-in-a-json
-#[derive(PartialEq)]
+#[derive(Clone, Debug)]
 pub struct HashedValue<'a>(&'a Value);
 
+impl PartialEq<Self> for HashedValue<'_> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (HashedValue(Value::Array(self_)), HashedValue(Value::Array(other_))) => {
+                self_ == other_
+            }
+            (HashedValue(Value::Bool(self_)), HashedValue(Value::Bool(other_))) => self_ == other_,
+            (HashedValue(Value::Null), HashedValue(Value::Null)) => true,
+            (HashedValue(Value::Number(self_)), HashedValue(Value::Number(other_))) => {
+                #[cfg(feature = "perfect_precision")]
+                {
+                    // This is needed because when perfect_precision feature is used then
+                    // serde-json stores the floating point as a literal and so 1.0 and 1.00
+                    // will not be equal
+                    self_ == other_ || PerfectPrecisionNumber::from(self_) == PerfectPrecisionNumber::from(other_)
+                }
+                #[cfg(not(feature = "perfect_precision"))]
+                {
+                    self_ == other_
+                }
+            }
+            (HashedValue(Value::Object(self_)), HashedValue(Value::Object(other_))) => {
+                self_ == other_
+            }
+            (HashedValue(Value::String(self_)), HashedValue(Value::String(other_))) => {
+                self_ == other_
+            }
+
+            _ => false,
+        }
+    }
+}
 impl Eq for HashedValue<'_> {}
 
 impl Hash for HashedValue<'_> {
@@ -23,12 +58,19 @@ impl Hash for HashedValue<'_> {
             Value::Null => state.write_u32(3_221_225_473), // chosen randomly
             Value::Bool(ref item) => item.hash(state),
             Value::Number(ref item) => {
-                if let Some(number) = item.as_u64() {
-                    number.hash(state);
-                } else if let Some(number) = item.as_i64() {
-                    number.hash(state);
-                } else if let Some(number) = item.as_f64() {
-                    number.to_bits().hash(state)
+                #[cfg(feature = "perfect_precision")]
+                {
+                    PerfectPrecisionNumber::from(item).hash(state)
+                }
+                #[cfg(not(feature = "perfect_precision"))]
+                {
+                    if let Some(number) = item.as_u64() {
+                        number.hash(state);
+                    } else if let Some(number) = item.as_i64() {
+                        number.hash(state);
+                    } else if let Some(number) = item.as_f64() {
+                        number.to_bits().hash(state)
+                    }
                 }
             }
             Value::String(ref item) => item.hash(state),
@@ -56,7 +98,7 @@ impl Hash for HashedValue<'_> {
 #[inline]
 pub fn is_unique(items: &[Value]) -> bool {
     let mut seen = HashSet::with_capacity(items.len());
-    items.iter().map(HashedValue).all(move |x| seen.insert(x))
+    items.iter().map(HashedValue).all(|x| seen.insert(x))
 }
 
 pub struct UniqueItemsValidator {}

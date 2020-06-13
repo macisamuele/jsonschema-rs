@@ -1,3 +1,5 @@
+#[cfg(feature = "perfect_precision")]
+use crate::perfect_precision_number::PerfectPrecisionNumber;
 use crate::{
     compilation::{CompilationContext, JSONSchema},
     error::{error, no_error, CompilationError, ErrorIterator, ValidationError},
@@ -82,6 +84,22 @@ impl Validate for MultipleTypesValidator {
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
         self.types.contains_type(PrimitiveType::Integer)
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        instance_value: &PerfectPrecisionNumber,
+    ) -> bool {
+        if self.types.contains_type(PrimitiveType::Number) {
+            true
+        } else if let PerfectPrecisionNumber::Integer(_) = instance_value {
+            self.types.contains_type(PrimitiveType::Integer)
+        } else {
+            false
+        }
+    }
 }
 
 pub struct NullTypeValidator {}
@@ -129,6 +147,16 @@ impl Validate for NullTypeValidator {
     }
     #[inline]
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
+        false
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
         false
     }
     #[inline]
@@ -197,6 +225,16 @@ impl Validate for BooleanTypeValidator {
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
         false
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
+        false
+    }
     #[inline]
     fn is_valid(&self, _: &JSONSchema, instance: &Value) -> bool {
         if let Value::Bool(_) = instance {
@@ -263,6 +301,16 @@ impl Validate for StringTypeValidator {
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
         false
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
+        false
+    }
     #[inline]
     fn is_valid(&self, _: &JSONSchema, instance: &Value) -> bool {
         if let Value::String(_) = instance {
@@ -327,6 +375,16 @@ impl Validate for ArrayTypeValidator {
     }
     #[inline]
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
+        false
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
         false
     }
     #[inline]
@@ -402,6 +460,16 @@ impl Validate for ObjectTypeValidator {
         } else {
             false
         }
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
+        false
     }
 
     #[inline]
@@ -495,6 +563,21 @@ impl Validate for IntegerTypeValidator {
     fn is_valid_number(&self, _: &JSONSchema, _: &Value, instance_value: f64) -> bool {
         instance_value.fract() == 0.
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        instance_value: &PerfectPrecisionNumber,
+    ) -> bool {
+        match instance_value {
+            PerfectPrecisionNumber::Integer(_) | PerfectPrecisionNumber::IntegerFromFloat(_) => {
+                true
+            }
+            PerfectPrecisionNumber::Rational(_) => false,
+        }
+    }
 
     #[inline]
     fn is_valid_array(&self, _: &JSONSchema, _: &Value, _: &[Value]) -> bool {
@@ -517,11 +600,20 @@ impl Validate for IntegerTypeValidator {
         false
     }
     #[inline]
-    fn is_valid(&self, _: &JSONSchema, instance: &Value) -> bool {
+    fn is_valid(&self, schema: &JSONSchema, instance: &Value) -> bool {
         if let Value::Number(instance_number) = instance {
-            instance_number.is_u64()
-                || instance_number.is_i64()
-                || instance_number.as_f64().map_or(false, |f| f.fract() == 0.)
+            #[cfg(feature = "perfect_precision")]
+            {
+                self.is_valid_perfect_precision_number(schema, instance, &instance_number.into())
+            }
+            #[cfg(not(feature = "perfect_precision"))]
+            {
+                let _ = schema; // no-op but helps linters to not complain about unused schema
+                                // parameter (if perfect_precision feature is not enabled)
+                instance_number.is_u64()
+                    || instance_number.is_i64()
+                    || instance_number.as_f64().map_or(false, |f| f.fract() == 0.)
+            }
         } else {
             false
         }

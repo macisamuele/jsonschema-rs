@@ -116,6 +116,11 @@ impl Validate for RefValidator {
     ref_impl_is_valid!(signed_integer, i64);
     ref_impl_is_valid!(string, &str);
     ref_impl_is_valid!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    ref_impl_is_valid!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 
     ref_impl_validate!(array, &'a [Value]);
     ref_impl_validate!(boolean, bool);
@@ -125,6 +130,11 @@ impl Validate for RefValidator {
     ref_impl_validate!(signed_integer, i64);
     ref_impl_validate!(string, &'a str);
     ref_impl_validate!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    ref_impl_validate!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 }
 
 #[inline]

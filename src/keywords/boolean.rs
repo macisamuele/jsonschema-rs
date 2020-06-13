@@ -80,6 +80,16 @@ impl Validate for FalseValidator {
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
         false
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &crate::perfect_precision_number::PerfectPrecisionNumber,
+    ) -> bool {
+        false
+    }
     #[inline]
     fn is_valid(&self, _: &JSONSchema, _: &Value) -> bool {
         false

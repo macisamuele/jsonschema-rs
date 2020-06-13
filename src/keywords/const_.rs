@@ -1,3 +1,5 @@
+#[cfg(feature = "perfect_precision")]
+use crate::perfect_precision_number::PerfectPrecisionNumber;
 use crate::{
     compilation::{CompilationContext, JSONSchema},
     error::{error, ErrorIterator, ValidationError},
@@ -65,6 +67,16 @@ impl Validate for ConstArrayValidator {
     }
     #[inline]
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
+        false
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
         false
     }
     #[inline]
@@ -137,6 +149,16 @@ impl Validate for ConstBooleanValidator {
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
         false
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
+        false
+    }
     #[inline]
     fn is_valid(&self, schema: &JSONSchema, instance: &Value) -> bool {
         if let Value::Bool(instance_value) = instance {
@@ -205,6 +227,16 @@ impl Validate for ConstNullValidator {
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
         false
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
+        false
+    }
     #[inline]
     fn is_valid(&self, schema: &JSONSchema, instance: &Value) -> bool {
         if let Value::Null = instance {
@@ -224,19 +256,33 @@ impl Validate for ConstNullValidator {
     }
 }
 
+#[cfg(feature = "perfect_precision")]
+type NumberType = PerfectPrecisionNumber;
+#[cfg(not(feature = "perfect_precision"))]
+type NumberType = f64;
+
 struct ConstNumberValidator {
     // This is saved in order to ensure that the error message is not altered by precision loss
     original_value: Number,
-    value: f64,
+    value: NumberType,
 }
 impl ConstNumberValidator {
     #[inline]
     pub(crate) fn compile(original_value: &Number) -> CompilationResult {
         Ok(Box::new(ConstNumberValidator {
             original_value: original_value.clone(),
-            value: original_value
-                .as_f64()
-                .expect("A JSON number will always be representable as f64"),
+            value: {
+                #[cfg(feature = "perfect_precision")]
+                {
+                    original_value.into()
+                }
+                #[cfg(not(feature = "perfect_precision"))]
+                {
+                    original_value
+                        .as_f64()
+                        .expect("A JSON number will always be representable as f64")
+                }
+            },
         }))
     }
 }
@@ -262,6 +308,12 @@ impl Validate for ConstNumberValidator {
     fn is_valid_null(&self, _: &JSONSchema, _: &Value, _: ()) -> bool {
         false
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_number(&self, _: &JSONSchema, _: &Value, instance_value: f64) -> bool {
+        (self.value.to_f64() - instance_value).abs() < EPSILON
+    }
+    #[cfg(not(feature = "perfect_precision"))]
     #[inline]
     fn is_valid_number(&self, _: &JSONSchema, _: &Value, instance_value: f64) -> bool {
         (self.value - instance_value).abs() < EPSILON
@@ -294,10 +346,33 @@ impl Validate for ConstNumberValidator {
         #[allow(clippy::cast_precision_loss)]
         self.is_valid_number(schema, instance, instance_value as f64)
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        instance_value: &PerfectPrecisionNumber,
+    ) -> bool {
+        &self.value == instance_value
+    }
     #[inline]
     fn is_valid(&self, schema: &JSONSchema, instance: &Value) -> bool {
-        if let Some(instance_value) = instance.as_f64() {
-            self.is_valid_number(schema, instance, instance_value)
+        if let Value::Number(number) = instance {
+            #[cfg(feature = "perfect_precision")]
+            {
+                self.is_valid_perfect_precision_number(schema, instance, &number.into())
+            }
+            #[cfg(not(feature = "perfect_precision"))]
+            {
+                self.is_valid_number(
+                    schema,
+                    instance,
+                    number
+                        .as_f64()
+                        .expect("A JSON number will always be representable as f64"),
+                )
+            }
         } else {
             false
         }
@@ -305,8 +380,21 @@ impl Validate for ConstNumberValidator {
 
     #[inline]
     fn validate<'a>(&self, schema: &'a JSONSchema, instance: &'a Value) -> ErrorIterator<'a> {
-        if let Some(instance_value) = instance.as_f64() {
-            self.validate_number(schema, instance, instance_value)
+        if let Value::Number(number) = instance {
+            #[cfg(feature = "perfect_precision")]
+            {
+                self.validate_perfect_precision_number(schema, instance, &number.into())
+            }
+            #[cfg(not(feature = "perfect_precision"))]
+            {
+                self.validate_number(
+                    schema,
+                    instance,
+                    number
+                        .as_f64()
+                        .expect("A JSON number will always be representable as f64"),
+                )
+            }
         } else {
             error(self.build_validation_error(instance))
         }
@@ -376,6 +464,16 @@ impl Validate for ConstObjectValidator {
     }
     #[inline]
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
+        false
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
         false
     }
     #[inline]
@@ -448,6 +546,16 @@ impl Validate for ConstStringValidator {
     }
     #[inline]
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
+        false
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        _: &PerfectPrecisionNumber,
+    ) -> bool {
         false
     }
     #[inline]

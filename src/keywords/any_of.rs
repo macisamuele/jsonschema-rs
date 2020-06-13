@@ -63,6 +63,11 @@ impl Validate for AnyOfValidator {
     any_of_impl_is_valid!(signed_integer, i64);
     any_of_impl_is_valid!(string, &str);
     any_of_impl_is_valid!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    any_of_impl_is_valid!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 }
 
 #[inline]

@@ -83,6 +83,11 @@ impl Validate for AllOfValidator {
     all_of_impl_is_valid!(signed_integer, i64);
     all_of_impl_is_valid!(string, &str);
     all_of_impl_is_valid!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    all_of_impl_is_valid!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 
     all_of_impl_validate!(array, &'a [Value]);
     all_of_impl_validate!(boolean, bool);
@@ -92,6 +97,11 @@ impl Validate for AllOfValidator {
     all_of_impl_validate!(signed_integer, i64);
     all_of_impl_validate!(string, &'a str);
     all_of_impl_validate!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    all_of_impl_validate!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 }
 
 #[inline]

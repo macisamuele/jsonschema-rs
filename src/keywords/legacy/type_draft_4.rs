@@ -1,3 +1,5 @@
+#[cfg(feature = "perfect_precision")]
+use crate::perfect_precision_number::PerfectPrecisionNumber;
 use crate::{
     compilation::{CompilationContext, JSONSchema},
     error::{error, no_error, CompilationError, ErrorIterator, ValidationError},
@@ -81,6 +83,22 @@ impl Validate for MultipleTypesValidator {
     fn is_valid_unsigned_integer(&self, _: &JSONSchema, _: &Value, _: u64) -> bool {
         self.types.contains_type(PrimitiveType::Integer)
     }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        instance_value: &PerfectPrecisionNumber,
+    ) -> bool {
+        if self.types.contains_type(PrimitiveType::Number) {
+            true
+        } else if let PerfectPrecisionNumber::Integer(_) = instance_value {
+            self.types.contains_type(PrimitiveType::Integer)
+        } else {
+            false
+        }
+    }
 }
 
 pub struct IntegerTypeValidator {}
@@ -100,6 +118,21 @@ impl Validate for IntegerTypeValidator {
 
     fn name(&self) -> String {
         "type: integer".to_string()
+    }
+
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        instance_value: &PerfectPrecisionNumber,
+    ) -> bool {
+        if let PerfectPrecisionNumber::Integer(_) = instance_value {
+            true
+        } else {
+            false
+        }
     }
 
     #[inline]
@@ -127,9 +160,18 @@ impl Validate for IntegerTypeValidator {
         false
     }
     #[inline]
-    fn is_valid(&self, _: &JSONSchema, instance: &Value) -> bool {
+    fn is_valid(&self, schema: &JSONSchema, instance: &Value) -> bool {
         if let Value::Number(instance_number) = instance {
-            instance_number.is_u64() || instance_number.is_i64()
+            #[cfg(feature = "perfect_precision")]
+            {
+                self.is_valid_perfect_precision_number(schema, instance, &instance_number.into())
+            }
+            #[cfg(not(feature = "perfect_precision"))]
+            {
+                let _ = schema; // no-op but helps linters to not complain about unused schema
+                                // parameter (if perfect_precision feature is not enabled)
+                instance_number.is_u64() || instance_number.is_i64()
+            }
         } else {
             false
         }

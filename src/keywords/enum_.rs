@@ -1,3 +1,5 @@
+#[cfg(feature = "perfect_precision")]
+use crate::perfect_precision_number::PerfectPrecisionNumber;
 use crate::{
     compilation::{CompilationContext, JSONSchema},
     error::{CompilationError, ValidationError},
@@ -111,6 +113,22 @@ impl Validate for EnumValidator {
         self.items.iter().any(|item| {
             item.as_u64()
                 .map_or_else(|| false, |value| value == instance_value)
+        })
+    }
+    #[cfg(feature = "perfect_precision")]
+    #[inline]
+    fn is_valid_perfect_precision_number(
+        &self,
+        _: &JSONSchema,
+        _: &Value,
+        instance_value: &PerfectPrecisionNumber,
+    ) -> bool {
+        self.items.iter().any(|item| {
+            if let Value::Number(item_number) = item {
+                &PerfectPrecisionNumber::from(item_number) == instance_value
+            } else {
+                false
+            }
         })
     }
 }

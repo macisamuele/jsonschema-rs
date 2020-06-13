@@ -55,6 +55,8 @@
 mod compilation;
 mod error;
 mod keywords;
+#[cfg(feature = "perfect_precision")]
+mod perfect_precision_number;
 mod primitive_type;
 mod resolver;
 mod schemas;

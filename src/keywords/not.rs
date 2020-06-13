@@ -58,6 +58,11 @@ impl Validate for NotValidator {
     not_impl_is_valid!(signed_integer, i64);
     not_impl_is_valid!(string, &str);
     not_impl_is_valid!(unsigned_integer, u64);
+    #[cfg(feature = "perfect_precision")]
+    not_impl_is_valid!(
+        perfect_precision_number,
+        &crate::perfect_precision_number::PerfectPrecisionNumber
+    );
 }
 
 #[inline]

@@ -78,13 +78,16 @@ mod compilation;
 mod content_encoding;
 mod content_media_type;
 mod error;
+mod format;
 mod keywords;
 mod primitive_type;
 mod resolver;
 mod schemas;
 mod validator;
+
 pub use compilation::{options::CompilationOptions, JSONSchema};
 pub use error::{CompilationError, ErrorIterator, ValidationError};
+pub use format::FormatValidator;
 pub use schemas::Draft;
 use serde_json::Value;
 

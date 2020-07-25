@@ -1,3 +1,5 @@
+pub(crate) mod jsonschema_formats;
+
 use crate::{
     compilation::JSONSchema, error::ValidationError, keywords::CompilationResult, schemas::Draft,
     validator::Validate,

@@ -1,9 +1,14 @@
-use crate::{format::FormatValidator, Draft};
+use crate::{
+    format::{FormatValidator, FormatValidatorBuilder},
+    keywords::CompilationResult,
+    Draft,
+};
 use chrono::{DateTime, NaiveDate};
 use regex::Regex;
-
-use std::{net::IpAddr, str::FromStr};
+use std::{collections::HashMap, net::IpAddr, str::FromStr};
 use url::Url;
+
+pub(crate) type FormatHandlerType = fn(Draft) -> Option<CompilationResult>;
 
 lazy_static::lazy_static! {
     static ref IRI_REFERENCE_RE: Regex =
@@ -155,3 +160,27 @@ impl_string_formatter!(
     |instance_value| URI_TEMPLATE_RE.is_match(instance_value),
     |draft_version| draft_version >= Draft::Draft6
 );
+
+lazy_static::lazy_static! {
+    pub(crate) static ref DEFAULT_FORMAT_HANDLERS: HashMap<&'static str, FormatHandlerType> = {
+        let mut map: HashMap<&'static str, FormatHandlerType> = HashMap::with_capacity(17);
+        map.insert("date", DateValidator::compile);
+        map.insert("date-time", DateTimeValidator::compile);
+        map.insert("email", EmailValidator::compile);
+        map.insert("hostname", HostnameValidator::compile);
+        map.insert("idn-email", IDNEmailValidator::compile);
+        map.insert("idn-hostname", IDNHostnameValidator::compile);
+        map.insert("ipv4", IpV4Validator::compile);
+        map.insert("ipv6", IpV6Validator::compile);
+        map.insert("iri", IRIValidator::compile);
+        map.insert("iri-reference", IRIReferenceValidator::compile);
+        map.insert("json-pointer", JSONPointerValidator::compile);
+        map.insert("regex", RegexValidator::compile);
+        map.insert("relative-json-pointer", RelativeJSONPointerValidator::compile);
+        map.insert("time", TimeValidator::compile);
+        map.insert("uri", URIValidator::compile);
+        map.insert("uri-reference", URIReferenceValidator::compile);
+        map.insert("uri-template", URITemplateValidator::compile);
+        map
+    };
+}

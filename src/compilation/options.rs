@@ -6,6 +6,7 @@ use crate::{
     },
     content_media_type::{ContentMediaTypeCheckType, DEFAULT_CONTENT_MEDIA_TYPE_CHECKS},
     error::CompilationError,
+    format::jsonschema_formats::{FormatHandlerType, DEFAULT_FORMAT_HANDLERS},
     resolver::Resolver,
     schemas,
 };
@@ -22,13 +23,10 @@ pub struct CompilationOptions {
     content_media_type_checks: HashMap<&'static str, Option<ContentMediaTypeCheckType>>,
     content_encoding_checks_and_converters:
         HashMap<&'static str, Option<(ContentEncodingCheckType, ContentEncodingConverterType)>>,
+    format_handlers: HashMap<&'static str, Option<FormatHandlerType>>,
 }
 
 impl CompilationOptions {
-    pub(crate) fn draft(&self) -> schemas::Draft {
-        self.draft.unwrap_or_default()
-    }
-
     /// Compile `schema` into `JSONSchema` using the currently defined options.
     pub fn compile<'a>(&self, schema: &'a Value) -> Result<JSONSchema<'a>, CompilationError> {
         // Draft is detected in the following precedence order:
@@ -67,6 +65,10 @@ impl CompilationOptions {
             validators,
             context,
         })
+    }
+
+    pub(crate) fn draft(&self) -> schemas::Draft {
+        self.draft.unwrap_or_default()
     }
 
     /// Ensure that the schema is going to be compiled using the defined Draft.
@@ -249,6 +251,44 @@ impl CompilationOptions {
     ) -> &mut Self {
         self.content_encoding_checks_and_converters
             .insert(content_encoding, None);
+        self
+    }
+
+    pub(crate) fn format_handler(&self, format_name: &str) -> Option<FormatHandlerType> {
+        if let Some(value) = self.format_handlers.get(format_name) {
+            *value
+        } else if let Some(value) = DEFAULT_FORMAT_HANDLERS.get(format_name) {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    /// Ensure that compiled schema is going to support the provided content media type.
+    ///
+    /// Arguments:
+    /// * `media_type`: Name of the content media type to support (ie. "application/json")
+    /// * `media_type_check`: Method checking the validity of the input string according to
+    ///     the media type.
+    ///     The method should return `true` if the input is valid, `false` otherwise.
+    ///
+    /// Example:
+    /// ```rust
+    /// # use jsonschema::CompilationOptions;
+    /// # let mut options = CompilationOptions::default();
+    /// fn check_custom_media_type(instance_string: &str) -> bool {
+    ///     // In reality the check might be a bit more different ;)
+    ///     instance_string != "not good"
+    /// }
+    /// // Add support for application/jsonschema-test
+    /// options.with_content_media_type("application/jsonschema-test", check_custom_media_type);
+    /// ```
+    pub fn with_format(
+        &mut self,
+        format_name: &'static str,
+        format_handler: FormatHandlerType,
+    ) -> &mut Self {
+        self.format_handlers.insert(format_name, Some(format_handler));
         self
     }
 }

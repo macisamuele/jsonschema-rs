@@ -1,8 +1,9 @@
 use crate::{compilation::context::CompilationContext, keywords};
+use enum_iterator::IntoEnumIterator;
 use serde_json::{Map, Value};
 
 /// JSON Schema Draft version
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, IntoEnumIterator, Ord, PartialEq, PartialOrd)]
 pub enum Draft {
     /// JSON Schema Draft 4
     Draft4,
@@ -132,6 +133,7 @@ pub(crate) fn id_of(draft: Draft, schema: &Value) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use enum_iterator::IntoEnumIterator;
     use serde_json::{json, Value};
     use test_case::test_case;
 
@@ -146,5 +148,12 @@ mod tests {
     #[test]
     fn test_default() {
         assert_eq!(Draft::default(), Draft::Draft7)
+    }
+
+    #[test]
+    fn test_draft_ordering() {
+        let mut drafts: Vec<_> = Draft::into_enum_iter().collect::<Vec<_>>();
+        drafts.sort();
+        assert_eq!(drafts, [Draft::Draft4, Draft::Draft6, Draft::Draft7]);
     }
 }

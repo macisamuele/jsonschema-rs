@@ -170,27 +170,27 @@ pub(crate) fn compile(
             "email" => Some(EmailValidator::compile()),
             "hostname" => Some(HostnameValidator::compile()),
             "idn-email" => Some(IDNEmailValidator::compile()),
-            "idn-hostname" if draft_version == Draft::Draft7 => {
+            "idn-hostname" if draft_version >= Draft::Draft7 => {
                 Some(IDNHostnameValidator::compile())
             }
             "ipv4" => Some(IpV4Validator::compile()),
             "ipv6" => Some(IpV6Validator::compile()),
-            "iri-reference" if draft_version == Draft::Draft7 => {
+            "iri-reference" if draft_version >= Draft::Draft7 => {
                 Some(IRIReferenceValidator::compile())
             }
             "iri" if draft_version == Draft::Draft7 => Some(IRIValidator::compile()),
-            "json-pointer" if draft_version == Draft::Draft6 || draft_version == Draft::Draft7 => {
+            "json-pointer" if draft_version >= Draft::Draft6 => {
                 Some(JSONPointerValidator::compile())
             }
             "regex" => Some(RegexValidator::compile()),
-            "relative-json-pointer" if draft_version == Draft::Draft7 => {
+            "relative-json-pointer" if draft_version >= Draft::Draft7 => {
                 Some(RelativeJSONPointerValidator::compile())
             }
             "time" => Some(TimeValidator::compile()),
-            "uri-reference" if draft_version == Draft::Draft6 || draft_version == Draft::Draft7 => {
+            "uri-reference" if draft_version >= Draft::Draft6 => {
                 Some(URIReferenceValidator::compile())
             }
-            "uri-template" if draft_version == Draft::Draft6 || draft_version == Draft::Draft7 => {
+            "uri-template" if draft_version >= Draft::Draft6 => {
                 Some(URITemplateValidator::compile())
             }
             "uri" => Some(URIValidator::compile()),
